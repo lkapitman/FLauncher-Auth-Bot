@@ -1,65 +1,75 @@
 <?php
 
-use DigitalStar\vk_api\vk_api;
-use TheCarryLove\Rcon;
-use TheCarryLove\Config;
-
 require_once('libs/autoload.php');
 require_once('libs/rcon.php');
-require_once('libs/config.php');
 
-$vk = vk_api::create(Config::$VK_TOKEN, Config::$VERSION)->setConfirm(Config::$CONFIRM_STR);
+use DigitalStar\vk_api\vk_api;
+use TheCarryLove\Rcon;
 
-if (Config::$DEBUG != false) {
-	$vk->debug();
+$config = include('libs/config.php');
+
+$vk = vk_api::create($config['VK_TOKEN'], $config['VK_VERSION'])->setConfirm($config['VK_CONFIRM_STR']);
+
+if ($config['VK_DEBUG'] == 0) {
+    $vk->debug();
 }
 
 $vk->initVars($id, $message, $payload);
 
-$rcon = new Rcon(Config::$HOST, Config::$PORT, Config::$PASSWORD, Config::$TIMEOUT);
-
-$password_valid = false;
+$rcon = new Rcon($config['RCON_HOST'], $config['RCON_PORT'], $config['RCON_PASSWORD'], $config['RCON_TIMEOUT']);
 
 $info_btn = $vk->buttonText('Регистрация', 'red', ['command' => 'Регистрация']);
 $help_btn = $vk->buttonText('Помощь', 'green', ['command' => 'Помощь']);
 $ip_btn = $vk->buttonText('Айпи', 'blue', ['command' => 'Айпи']);
+$PASSWORD_VALID = 0;
 
 if ($payload) {
-
     if(strpos($payload['command'], 'Регистрация') != false) {
 
-			$register_args = explode(" ", $payload['command']);
+        $register_args = explode(" ", $payload['command']);
 
-			if (count($register_args) == 3) {
+        if (count($register_args) == 3) {
+            if ($register_args[2] == $register_args[3]) {
+                $PASSWORD_VALID = 0;
+            } else {
+                $PASSWORD_VALID = 1;
+            }
 
-					if ($register_args[2] == $register_args[3]) {
-						$password_valid = true;
-					} else {
-						$password_valid = false;
-					}
-					if ($password_valid) {
-						if ($rcon->connect()) {
-							$rcon->sendCommand(Config::$AuthCommand . " " . $register_args[1] . " " . $register_args[2]);
-							$rcon->sendCommand(Config::$MessageAfterRegister . " " . $register_args[1] . " !");
-							$vk->reply(Config::$SUCCESFULL);
-						}
-					}
-			} else {
-				$vk->reply(Config::ErrorMSG);
-			}
+            if ($PASSWORD_VALID == 0) {
+                if ($rcon->connect()) {
 
-		}
+                    $rcon->sendCommand($config['COMMAND_FOR_REGISTER'] . " " . $register_args[1] . " " . $register_args[2]);
+
+                    if ($config['MSG_NEW_PLAYER_ENABLE']) {
+                        $rcon->sendCommand($config['MSG_NEW_PLAYER'] . " " . $register_args[1] . " !");
+                    }
+
+                    $vk->reply("Успешно!");
+                } else {
+                    $vk->reply($config['NO_CONNECTION_MSG']);
+                }
+            } else {
+                $vk->reply($config['PASSWORD_NO_VALID']);
+            }
+
+        } else {
+            $vk->reply($config['PARAMS_COMMAND_NOT_REALY']);
+        }
+
+    }
 
 	if($payload['command'] == 'Помощь') {
-		$vk->reply(Config::$HELPER_STRING);
+		$vk->sendMessage($id, $config['HELPER_STRING']);
 	}
+
 	if($payload['command'] == 'Айпи') {
-		$vk->reply(Config::$IP_STRING);
+		$vk->sendMessage($id, $config['IP_STRING']);
 	}
+
 } else {
 	if ($message == 'Начать') {
 		$vk->sendButton($id,'Кнопки инициализированы!', [[$info_btn], [$help_btn], [$ip_btn]]);
-		$vk->reply('Список доступных команд -> Помощь');
+		$vk->sendMessage($id,'Список доступных команд -> Помощь');
 	}
 
 }
