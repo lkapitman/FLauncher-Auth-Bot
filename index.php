@@ -24,9 +24,28 @@ $ip_btn = $vk->buttonText('Айпи', 'blue', ['command' => 'Айпи']);
 $PASSWORD_VALID = 0;
 
 if ($payload) {
-    if(strpos($payload['command'], 'Регистрация') != false) {
 
-        $register_args = explode(" ", $payload['command']);
+    if($payload['command'] == 'Регистрация') {
+        $vk->reply($config['SYNTAX_REGISTER']);
+    }
+
+	if($payload['command'] == 'Помощь') {
+		$vk->sendMessage($id, $config['HELPER_STRING']);
+	}
+
+	if($payload['command'] == 'Айпи') {
+		$vk->sendMessage($id, $config['IP_STRING']);
+	}
+
+} else {
+    if ($message == 'Начать') {
+        $vk->sendButton($id, 'Кнопки инициализированы!', [[$info_btn], [$help_btn], [$ip_btn]]);
+        $vk->sendMessage($id, 'Список доступных команд -> Помощь');
+    }
+
+    if (strpos($message, 'Регистрация') !== false) {
+
+        $register_args = explode(" ", $message);
 
         if (count($register_args) == 3) {
             if ($register_args[2] == $register_args[3]) {
@@ -57,19 +76,4 @@ if ($payload) {
         }
 
     }
-
-	if($payload['command'] == 'Помощь') {
-		$vk->sendMessage($id, $config['HELPER_STRING']);
-	}
-
-	if($payload['command'] == 'Айпи') {
-		$vk->sendMessage($id, $config['IP_STRING']);
-	}
-
-} else {
-	if ($message == 'Начать') {
-		$vk->sendButton($id,'Кнопки инициализированы!', [[$info_btn], [$help_btn], [$ip_btn]]);
-		$vk->sendMessage($id,'Список доступных команд -> Помощь');
-	}
-
 }
